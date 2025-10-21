@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Add Donation</title>
+</head>
+<body>
+<nav>
+  <a href="/donors.html">Donor Page</a> |
+  <a href="/admin.html">Admin Panel</a> |
+  <a href="/login.html">Login</a>
+</nav>
+<h1>Add Donation</h1>
+<form id="donationForm">
+  Name: <input type="text" id="name" required><br>
+  Address: <input type="text" id="address" required><br>
+  City: <input type="text" id="city" required><br>
+  Amount: <input type="number" id="amount" required><br>
+  Date: <input type="date" id="date" required><br>
+  <button type="submit">Add Donation</button>
+</form>
+
+<pre id="response"></pre>
+
+<script>
+const form = document.getElementById('donationForm');
+const responseEl = document.getElementById('response');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('name').value,
+    address: document.getElementById('address').value,
+    city: document.getElementById('city').value,
+    amount: parseFloat(document.getElementById('amount').value),
+    date: document.getElementById('date').value
+  };
+
+  const res = await fetch('/api/donations', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  });
+  const result = await res.json();
+  responseEl.textContent = JSON.stringify(result, null, 2);
+});
+</script>
+</body>
+</html>

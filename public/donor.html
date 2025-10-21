@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donor Page</title>
+<style>
+table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
+input { margin: 5px; padding: 5px; }
+button { margin: 5px; padding: 5px; }
+</style>
+</head>
+<body>
+<h1>Donor Details</h1>
+
+<div id="donorInfo">
+  <p>Name: <span id="nameSpan"></span></p>
+  <p>Address: <span id="addressSpan"></span></p>
+  <p>City: <span id="citySpan"></span></p>
+  <button id="editDonorBtn">Edit Donor</button>
+</div>
+
+<div id="editDonorForm" style="display:none;">
+  <label>Name: <input type="text" id="nameInput"></label><br>
+  <label>Address: <input type="text" id="addressInput"></label><br>
+  <label>City: <input type="text" id="cityInput"></label><br>
+  <button id="saveDonorBtn">Save</button>
+  <button id="cancelEditBtn">Cancel</button>
+</div>
+
+<h2>Donations</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Amount</th>
+      <th>Date</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="donationsTable"></tbody>
+</table>
+
+<h2>Add Donation</h2>
+<form id="addDonationForm">
+  Amount: <input type="number" id="amountAdd" required>
+  Date: <input type="date" id="dateAdd" required>
+  <button type="submit">Add</button>
+</form>
+
+<pre id="response"></pre>
+
+<script>
+let donors = [];
+let currentDonor = null;
+const responseEl = document.getElementById('response');
+
+// Get donorId from URL
+const urlParams = new URLSearchParams(window.location.search);
+const donorIdFromURL = urlParams.get('donorId');
+
+// Load donors
+async function loadDonors() {
+  const res = await fetch('/api/donors');
+  const data = await res.json();
+  donors = data.donors;
+
+  if (donorIdFromURL) {
+    currentDonor = donors.find(d => d._id === donorIdFromURL);
+    if (currentDonor) renderDonorInfo();
+    else responseEl.textContent = 'Donor not found';
+  }
+}
+
+// Render donor info and donations
+function renderDonorInfo() {
+  if (!currentDonor) return;
+
+  document.getElementById('nameSpan').textContent = currentDonor.name;
+  document.getElementById('addressSpan').textContent = currentDonor.address;
+  document.getElementById('citySpan').textContent = currentDonor.city;
+
+  const tbody = document.getElementById('donationsTable');
+  tbody.innerHTML = '';
+
+  currentDonor.donations.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${d.amount}</td>
+      <td>${d.date ? d.date.split('T')[0] : ''}</td>
+      <td>
+        <button onclick="startEditDonation('${d._id}', ${d.amount}, '${d.date ? d.date.split('T')[0] : ''}')">Edit</button>
+        <button onclick="removeDonation('${d._id}')">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// Donor edit
+document.getElementById('editDonorBtn').addEventListener('click', () => {
+  document.getElementById('donorInfo').style.display = 'none';
+  document.getElementById('editDonorForm').style.display = 'block';
+  document.getElementById('nameInput').value = currentDonor.name;
+  document.getElementById('addressInput').value = currentDonor.address;
+  document.getElementById('cityInput').value = currentDonor.city;
+});
+document.getElementById('cancelEditBtn').addEventListener('click', () => {
+  document.getElementById('donorInfo').style.display = 'block';
+  document.getElementById('editDonorForm').style.display = 'none';
+});
+document.getElementById('saveDonorBtn').addEventListener('click', async () => {
+  const updated = {
+    name: document.getElementById('nameInput').value,
+    address: document.getElementById('addressInput').value,
+    city: document.getElementById('cityInput').value
+  };
+  const res = await fetch(`/api/donors/${currentDonor._id}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(updated)
+  });
+  const data = await res.json();
+  currentDonor = data.donor;
+  document.getElementById('donorInfo').style.display = 'block';
+  document.getElementById('editDonorForm').style.display = 'none';
+  renderDonorInfo();
+});
+
+// Add donation
+document.getElementById('addDonationForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  if (!currentDonor) return alert('Donor not loaded');
+
+  const amount = parseFloat(document.getElementById('amountAdd').value);
+  const date = document.getElementById('dateAdd').value;
+
+  const res = await fetch(`/api/donors/${currentDonor._id}/donations`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ amount, date })
+  });
+  const data = await res.json();
+  currentDonor = data.donor;
+  renderDonorInfo();
+});
+
+// Donation editing
+function startEditDonation(donationId, amount, date) {
+  const tbody = document.getElementById('donationsTable');
+  const tr = Array.from(tbody.children).find(r => r.querySelector('button').onclick.toString().includes(donationId));
+  if (!tr) return;
+
+  tr.innerHTML = `
+    <td><input type="number" id="editAmount" value="${amount}"></td>
+    <td><input type="date" id="editDate" value="${date}"></td>
+    <td>
+      <button onclick="saveEditDonation('${donationId}')">Save</button>
+      <button onclick="renderDonorInfo()">Cancel</button>
+    </td>
+  `;
+}
+
+async function saveEditDonation(donationId) {
+  const amount = parseFloat(document.getElementById('editAmount').value);
+  const date = document.getElementById('editDate').value;
+
+  const res = await fetch(`/api/donors/${currentDonor._id}/donations/${donationId}`, {
+    method: 'PUT',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ amount, date })
+  });
+  const data = await res.json();
+  currentDonor = data.donor;
+  renderDonorInfo();
+}
+
+// Remove donation
+// Remove donation with confirmation
+async function removeDonation(donationId) {
+  const confirmDelete = confirm("Are you sure you want to delete this donation?");
+  if (!confirmDelete) return;
+
+  const res = await fetch(`/api/donors/${currentDonor._id}/donations/${donationId}`, { method: 'DELETE' });
+  const data = await res.json();
+  currentDonor = data.donor;
+  renderDonorInfo();
+}
+
+// Optional: Delete donor itself
+async function removeDonor() {
+  const confirmDelete = confirm("Are you sure you want to delete this donor and all their donations?");
+  if (!confirmDelete) return;
+
+  const res = await fetch(`/api/donors/${currentDonor._id}`, { method: 'DELETE' });
+  const data = await res.json();
+  alert("Donor deleted!");
+  window.location.href = 'donors.html'; // go back to donor list
+}
+
+
+// Load donors on page load
+loadDonors();
+</script>
+</body>
+</html>

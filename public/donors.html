@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donors Table with Live Filter & Sort Arrow</title>
+<style>
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 20px;
+  }
+  th, td {
+    border: 1px solid #aaa;
+    padding: 8px;
+    text-align: left;
+  }
+  th {
+    cursor: pointer;
+    background-color: #f0f0f0;
+    user-select: none;
+  }
+  th .arrow {
+    margin-left: 5px;
+    font-size: 0.8em;
+  }
+  input {
+    margin: 5px;
+    padding: 5px;
+  }
+</style>
+</head>
+<body>
+<h1>Donors List</h1>
+
+<!-- Filters -->
+<label>Name: <input type="text" id="filterName"></label>
+<label>City: <input type="text" id="filterCity"></label>
+<label>Min Total: <input type="number" id="filterMin"></label>
+<label>Max Total: <input type="number" id="filterMax"></label>
+
+<!-- Table -->
+<table>
+  <thead>
+    <tr>
+      <th onclick="sortTable('name')">Name <span class="arrow" id="arrow-name"></span></th>
+      <th onclick="sortTable('city')">City <span class="arrow" id="arrow-city"></span></th>
+      <th>Address</th>
+      <th onclick="sortTable('totalDonation')">Total Donation <span class="arrow" id="arrow-totalDonation"></span></th>
+      <th>Number of Donations</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
+  <tbody id="donorsTableBody">
+    <!-- Rows will be inserted here -->
+  </tbody>
+</table>
+
+<script>
+let donors = [];
+let currentSortBy = '';
+let currentSortOrder = 'asc';
+
+async function loadDonors() {
+  const res = await fetch(`/api/donors`,{
+    method: 'GET',
+    credentials: 'include'
+  });
+  const data = await res.json();
+  donors = data.donors;
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('donorsTableBody');
+  tbody.innerHTML = '';
+
+  const filterName = document.getElementById('filterName').value.toLowerCase();
+  const filterCity = document.getElementById('filterCity').value.toLowerCase();
+  const filterMin = parseFloat(document.getElementById('filterMin').value);
+  const filterMax = parseFloat(document.getElementById('filterMax').value);
+
+  let filtered = donors.filter(donor => {
+    const total = donor.totalDonation || 0;
+    return (
+      (!filterName || donor.name.toLowerCase().includes(filterName)) &&
+      (!filterCity || donor.city.toLowerCase().includes(filterCity)) &&
+      (isNaN(filterMin) || total >= filterMin) &&
+      (isNaN(filterMax) || total <= filterMax)
+    );
+  });
+
+  // Sort if needed
+  if (currentSortBy) {
+    filtered.sort((a, b) => {
+      let valA = a[currentSortBy];
+      let valB = b[currentSortBy];
+
+      if (typeof valA === 'string') valA = valA.toLowerCase();
+      if (typeof valB === 'string') valB = valB.toLowerCase();
+
+      if (valA < valB) return currentSortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return currentSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // Update arrow indicators
+  ['name','city','totalDonation'].forEach(field => {
+    const el = document.getElementById(`arrow-${field}`);
+    if (currentSortBy === field) {
+      el.textContent = currentSortOrder === 'asc' ? '↑' : '↓';
+    } else {
+      el.textContent = '';
+    }
+  });
+
+  filtered.forEach(donor => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+      <td><a href="donor.html?donorId=${donor._id}">${donor.name}</a></td>
+      <td>${donor.city}</td>
+      <td>${donor.address}</td>
+      <td>${donor.totalDonation || 0}</td>
+      <td>${donor.donations.length}</td>
+      <td>
+        <button onclick="deleteDonor('${donor._id}')">Delete</button>
+      </td>
+  `;
+  tbody.appendChild(tr);
+});
+}
+
+// Live filtering
+document.getElementById('filterName').addEventListener('input', renderTable);
+document.getElementById('filterCity').addEventListener('input', renderTable);
+document.getElementById('filterMin').addEventListener('input', renderTable);
+document.getElementById('filterMax').addEventListener('input', renderTable);
+
+// Sorting
+function sortTable(field) {
+  if (currentSortBy === field) {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortBy = field;
+    currentSortOrder = 'asc';
+  }
+  renderTable();
+}
+
+async function deleteDonor(donorId) {
+  const confirmDelete = confirm("Are you sure you want to delete this donor and all their donations?");
+  if (!confirmDelete) return;
+
+  const res = await fetch(`/api/donors/${donorId}`, { method: 'DELETE' });
+  const data = await res.json();
+
+  if (data.success) {
+    alert("Donor deleted!");
+    // Remove deleted donor from local array and re-render
+    donors = donors.filter(d => d._id !== donorId);
+    renderTable();
+  } else {
+    alert("Error deleting donor: " + data.message);
+  }
+}
+// Initial load
+loadDonors();
+</script>
+</body>
+</html>
