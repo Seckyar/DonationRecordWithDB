@@ -4,13 +4,163 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Add Donation</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+
+  /* General */
+
+
+/* Responsive styles for small screens */
+@media (max-width: 600px) {
+
+  table, thead, tbody, th, td, tr {
+    display: block;
+    width: 100%;
+  }
+
+  thead tr {
+    display: none;
+  }
+
+  tr {
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    background: #fff;
+  }
+
+  td {
+    border: none;
+    padding: 5px 0;
+    position: relative;
+    padding-left: 50%;
+    text-align: left;
+  }
+
+  td::before {
+    position: absolute;
+    left: 10px;
+    top: 5px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  td:nth-of-type(1)::before { content: "Name"; }
+  td:nth-of-type(2)::before { content: "City"; }
+  td:nth-of-type(3)::before { content: "Address"; }
+  td:nth-of-type(4)::before { content: "Total Donation"; }
+  td:nth-of-type(5)::before { content: "Number of Donations"; }
+
+  
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 8px 0;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+  }
+}
+
+</style>
 </head>
 <body>
 <nav>
-  <a href="/donors.html">Donor Page</a> |
+  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
   <a href="/admin.html">Admin Panel</a> |
-  <a href="/login.html">Login</a>
+  <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
+
+<script>
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include' // important to include session cookie
+    });
+    alert('Logged out!');
+    window.location.href = '/login.html'; // redirect after logout
+  } catch (err) {
+    console.error('Logout failed', err);
+  }
+});
+</script>
+
 </nav>
+<h1>Search Donors</h1>
+<input type="text" id="searchDonor" placeholder="Search by name or city">
+
+<table id="donorsTable">
+  <thead>
+    <tr>
+      <th>Name</th>
+      <th>City</th>
+      <th>Address</th>
+      <th>Total Donation</th>
+      <th>Number of Donations</th>
+    </tr>
+  </thead>
+  <tbody id="donorsTableBody"></tbody>
+</table>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('searchDonor');
+  const table = document.getElementById('donorsTable');
+  const tbody = document.getElementById('donorsTableBody');
+  let donors = [];
+
+  // Load donors from server
+  async function loadDonors() {
+    try {
+      const res = await fetch('/api/donors');
+      const data = await res.json();
+      if (data.success) {
+        donors = data.donors;
+      } else {
+        alert('Failed to load donors. Please log in.');
+        window.location.href = '/login.html';
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error fetching donors.');
+    }
+  }
+
+  function renderTable() {
+    const query = searchInput.value.trim().toLowerCase();
+    if (!query) {
+      table.style.display = 'none';
+      tbody.innerHTML = '';
+      return;
+    }
+
+    const filtered = donors.filter(d => 
+      d.name.toLowerCase().includes(query) || d.city.toLowerCase().includes(query)
+    );
+
+    tbody.innerHTML = '';
+    filtered.forEach(donor => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><a href="donor.html?donorId=${donor._id}">${donor.name}</a></td>
+        <td>${donor.city}</td>
+        <td>${donor.address}</td>
+        <td>${donor.totalDonation || 0}</td>
+        <td>${donor.donations.length}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    table.style.display = filtered.length ? 'table' : 'none';
+  }
+
+  searchInput.addEventListener('input', renderTable);
+  loadDonors();
+});
+</script>
 <h1>Add Donation</h1>
 <form id="donationForm">
   Name: <input type="text" id="name" required><br>
@@ -18,7 +168,7 @@
   City: <input type="text" id="city" required><br>
   Amount: <input type="number" id="amount" required><br>
   Date: <input type="date" id="date" required><br>
-  <button type="submit">Add Donation</button>
+  <button type="submit" style="margin-top: 10px;" class="save-btn">Add Donation</button>
 </form>
 
 <pre id="response"></pre>
@@ -40,11 +190,23 @@ form.addEventListener('submit', async (e) => {
   const res = await fetch('/api/donations', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
+    credentials: 'include',
     body: JSON.stringify(data)
   });
+  if (!res.ok) {
+      // for example, 401 Unauthorized
+      if (res.status === 401) {
+        alert('You are not logged in. Redirecting to login page.');
+        window.location.href = '/login.html';
+      } else {
+        alert('Error: ' + res.status);
+      }
+    } else {
   const result = await res.json();
   responseEl.textContent = JSON.stringify(result, null, 2);
+    }
 });
+
 </script>
 </body>
 </html>

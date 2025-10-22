@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Login</title>
 <style>
   body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; }
@@ -10,51 +10,52 @@
   input { width: 100%; margin: 5px 0; padding: 8px; }
   button { width: 100%; padding: 8px; background: #007bff; color: white; border: none; border-radius: 5px; }
   .msg { margin-top: 10px; color: red; text-align: center; }
+  
 </style>
 </head>
 <body>
-  <div class="box">
-    <h2>Login</h2>
-    <form id="loginForm">
-      <input type="text" id="username" placeholder="Username" required />
-      <input type="password" id="password" placeholder="Password" required />
-      <button type="submit">Login</button>
-    </form>
-    <div class="msg" id="msg"></div>
-  </div>
+<div class="box">
+  <h2>Login</h2>
+  <form id="loginForm">
+    <input type="text" id="username" placeholder="Username" required>
+    <input type="password" id="password" placeholder="Password" required>
+    <button type="submit">Login</button>
+  </form>
+  <div class="msg" id="msg"></div>
+</div>
 
-  <script>
-  // Wait for DOM to fully load before running JS
-  document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('loginForm');
-    const msg = document.getElementById('msg');
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const form = document.getElementById('loginForm');
+  const msg = document.getElementById('msg');
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
 
-      const username = document.getElementById('username').value.trim();
-      const password = document.getElementById('password').value.trim();
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
 
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password })
-        });
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password })
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (data.success) {
-          window.location.href = 'donation.html'; // redirect after successful login
-        } else {
-          msg.textContent = data.message || 'Login failed';
-        }
-      } catch (err) {
-        console.error('Login error:', err);
-        msg.textContent = 'Server error. Try again later.';
+      if (data.success) {
+        window.location.href = 'donation.html'; // redirect after login
+      } else {
+        msg.textContent = data.message || 'Login failed';
       }
-    });
+    } catch (err) {
+      console.error('Login error:', err);
+      msg.textContent = 'Server error. Try again later.';
+    }
   });
-  </script>
+});
+</script>
 </body>
 </html>

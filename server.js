@@ -16,11 +16,7 @@ mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log('✅ Connected to MongoDB'))
   .catch(err => console.error('❌ MongoDB connection error:', err));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-
-// === Session ===
+  // === Session ===
 app.use(session({
   secret: process.env.SESSION_SECRET || 'secret123',
   resave: false,
@@ -28,20 +24,42 @@ app.use(session({
 }));
 
 function requireLogin(req, res, next) {
-  if (!req.session.user) {
+  if (req.session && req.session.user) {
+    return next(); // user is logged in → allow access
+  }
+
+  // API request → JSON error
+  if (req.originalUrl.startsWith('/api/')) {
     return res.status(401).json({ success: false, message: 'Unauthorized. Please log in.' });
   }
-  next(); // user is logged in, continue to the route
+
+  // HTML page → redirect
+  return res.redirect('/login.html');
 }
 
+    
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'donation.html'));
+  if (req.session.user) {
+    return res.redirect('/donation.html');
+  }
+  res.redirect('/login.html');
 });
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// === Serve static files ===
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.get('/admin.html', requireLogin, (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 
 // === Register (admin use only) ===
 // === Register (admin only) ===
 app.post('/api/register', async (req, res) => {
-  if (req.session.role !== 'admin') {
+  if (req.session.user.role != 'admin') {
     return res.status(403).json({ success: false, message: 'Only admin can create accounts.' });
   }
 
@@ -64,13 +82,19 @@ app.post('/api/register', async (req, res) => {
 
 
 // === Login ===
+
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
   try {
     const account = await Account.findOne({ username: username.trim() });
-    if (!account || account.password !== password) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!account) {
+      return res.status(401).json({ success: false, message: 'Invalid user' });
+    }
+
+    const isMatch = await bcrypt.compare(password, account.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid password' });
     }
 
     req.session.user = { id: account._id, username: account.username, role: account.role };
@@ -81,7 +105,6 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-
 // === Logout ===
 app.post('/api/logout', (req, res) => {
   req.session.destroy(() => {
@@ -89,9 +112,6 @@ app.post('/api/logout', (req, res) => {
   });
 });
 
-// === Protect all donor routes ===
-app.use('/api/donors', requireLogin);
-app.use('/api/donations', requireLogin);
 
 // === Get all donors with total donations, filter & sort ===
 app.get('/api/donors', async (req, res) => {
@@ -131,8 +151,29 @@ app.get('/api/donors', async (req, res) => {
     }
 });
 
+// === Edit donor ===
+app.put('/api/donors/:id', requireLogin, async (req, res) => {
+  const donorId = req.params.id;
+  const { name, address, city, donations } = req.body;
+
+  try {
+    const donor = await Donor.findById(donorId);
+    if (!donor) return res.status(404).json({ success: false, message: 'Donor not found' });
+
+    if (name) donor.name = name;
+    if (address) donor.address = address;
+    if (city) donor.city = city;
+    if (donations) donor.donations = donations;
+
+    await donor.save();
+    res.json({ success: true, donor });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 // === Delete donor ===
-app.delete('/api/donors/:id', async (req, res) => {
+app.delete('/api/donors/:id', requireLogin, async (req, res) => {
   const donorId = req.params.id;
 
   try {
@@ -145,7 +186,25 @@ app.delete('/api/donors/:id', async (req, res) => {
 });
 
 // === Add / Edit / Delete specific donation ===
-app.post('/api/donors/:id/donations', async (req, res) => {
+// === Create donation (auto create donor if missing) ===
+app.post('/api/donations', requireLogin, async (req, res) => {
+  const { name, address, city, amount, date } = req.body;
+
+  let donor = await Donor.findOne({ name, address, city });
+  const donation = { amount, date };
+
+  if (donor) {
+    donor.donations.push(donation);
+    await donor.save();
+  } else {
+    donor = new Donor({ name, address, city, donations: [donation] });
+    await donor.save();
+  }
+
+  res.json({ success: true, donor });
+});
+
+app.post('/api/donors/:id/donations', requireLogin, async (req, res) => {
   const donor = await Donor.findById(req.params.id);
   if (!donor) return res.status(404).json({ success: false, message: 'Donor not found' });
 
@@ -154,7 +213,7 @@ app.post('/api/donors/:id/donations', async (req, res) => {
   res.json({ success: true, donor });
 });
 
-app.put('/api/donors/:donorId/donations/:donationId', async (req, res) => {
+app.put('/api/donors/:donorId/donations/:donationId', requireLogin, async (req, res) => {
   const { donorId, donationId } = req.params;
   const donor = await Donor.findById(donorId);
   if (!donor) return res.status(404).json({ success: false, message: 'Donor not found' });
@@ -169,7 +228,7 @@ app.put('/api/donors/:donorId/donations/:donationId', async (req, res) => {
   res.json({ success: true, donor });
 });
 
-app.delete('/api/donors/:donorId/donations/:donationId', async (req, res) => {
+app.delete('/api/donors/:donorId/donations/:donationId', requireLogin, async (req, res) => {
   const { donorId, donationId } = req.params;
   const donor = await Donor.findById(donorId);
   if (!donor) return res.status(404).json({ success: false, message: 'Donor not found' });
@@ -181,20 +240,28 @@ app.delete('/api/donors/:donorId/donations/:donationId', async (req, res) => {
 });
 
 // Get all accounts
-app.get('/api/accounts', async (req, res) => {
+app.get('/api/accounts', requireLogin, async (req, res) => {
   const accounts = await Account.find().select('-password'); // hide password
   res.json(accounts);
 });
 
 // Update account
-app.put('/api/accounts/:id', async (req, res) => {
+app.put('/api/accounts/:id', requireLogin, async (req, res) => {
+  if (req.session.user.role != 'admin') {
+    return res.status(403).json({ success: false, message: 'Only admin can edit accounts.' });
+  }
+
   const { username, role } = req.body;
   await Account.findByIdAndUpdate(req.params.id, { username, role });
   res.json({ success: true, message: 'Account updated successfully.' });
 });
 
 // Delete account
-app.delete('/api/accounts/:id', async (req, res) => {
+app.delete('/api/accounts/:id', requireLogin, async (req, res) => {
+  if (req.session.user.role != 'admin') {
+    return res.status(403).json({ success: false, message: 'Only admin can delete accounts.' });
+  }
+
   await Account.findByIdAndDelete(req.params.id);
   res.json({ success: true, message: 'Account deleted successfully.' });
 });

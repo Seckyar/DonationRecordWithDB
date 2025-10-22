@@ -4,14 +4,99 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Donor Page</title>
+<link rel="stylesheet" href="styles.css">
 <style>
-table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-th, td { border: 1px solid #aaa; padding: 8px; text-align: left; }
-input { margin: 5px; padding: 5px; }
-button { margin: 5px; padding: 5px; }
+  table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background-color: white;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 10px;
+  text-align: center;
+}
+
+th {
+  background-color: #e0e0e0;
+}
+
+/* --- Mobile Responsive --- */
+@media (max-width: 600px) {
+
+  table, thead, tbody, th, td, tr {
+    display: block;
+  }
+
+  thead tr {
+    display: none; /* hide headers */
+  }
+
+  tr {
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    padding: 10px;
+    border-radius: 5px;
+  }
+
+  td {
+    border: none;
+    padding: 5px 0;
+    position: relative;
+    padding-left: 50%;
+    text-align: left;
+  }
+
+  td::before {
+    position: absolute;
+    left: 10px;
+    top: 5px;
+    white-space: nowrap;
+    font-weight: bold;
+  }
+
+  td:nth-of-type(1)::before { content: "Amount"; }
+  td:nth-of-type(2)::before { content: "Date"; }
+  td:nth-of-type(3)::before { content: "Actions"; }
+
+ 
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 5px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 5px;
+  }
+}
 </style>
 </head>
 <body>
+  <nav>
+  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
+  <a href="/admin.html">Admin Panel</a> |
+  <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
+
+<script>
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  try {
+    await fetch('/api/logout', {
+      method: 'POST',
+      credentials: 'include' // important to include session cookie
+    });
+    alert('Logged out!');
+    window.location.href = '/login.html'; // redirect after logout
+  } catch (err) {
+    console.error('Logout failed', err);
+  }
+});
+</script>
+
+</nav>
 <h1>Donor Details</h1>
 
 <div id="donorInfo">
@@ -43,9 +128,9 @@ button { margin: 5px; padding: 5px; }
 
 <h2>Add Donation</h2>
 <form id="addDonationForm">
-  Amount: <input type="number" id="amountAdd" required>
-  Date: <input type="date" id="dateAdd" required>
-  <button type="submit">Add</button>
+  <label>Amount: <input type="number" id="amountAdd" required></label>
+  <label>Date: <input type="date" id="dateAdd" required></label>
+  <button type="submit" style="margin-top: 10px;" class="save-btn">Add</button>
 </form>
 
 <pre id="response"></pre>
@@ -62,6 +147,14 @@ const donorIdFromURL = urlParams.get('donorId');
 // Load donors
 async function loadDonors() {
   const res = await fetch('/api/donors');
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   donors = data.donors;
 
@@ -89,8 +182,8 @@ function renderDonorInfo() {
       <td>${d.amount}</td>
       <td>${d.date ? d.date.split('T')[0] : ''}</td>
       <td>
-        <button onclick="startEditDonation('${d._id}', ${d.amount}, '${d.date ? d.date.split('T')[0] : ''}')">Edit</button>
-        <button onclick="removeDonation('${d._id}')">Delete</button>
+        <button class="edit-btn" onclick="startEditDonation('${d._id}', ${d.amount}, '${d.date ? d.date.split('T')[0] : ''}')">Edit</button>
+        <button class="delete-btn" onclick="removeDonation('${d._id}')">Delete</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -120,6 +213,14 @@ document.getElementById('saveDonorBtn').addEventListener('click', async () => {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(updated)
   });
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   currentDonor = data.donor;
   document.getElementById('donorInfo').style.display = 'block';
@@ -140,6 +241,14 @@ document.getElementById('addDonationForm').addEventListener('submit', async e =>
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ amount, date })
   });
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   currentDonor = data.donor;
   renderDonorInfo();
@@ -155,7 +264,7 @@ function startEditDonation(donationId, amount, date) {
     <td><input type="number" id="editAmount" value="${amount}"></td>
     <td><input type="date" id="editDate" value="${date}"></td>
     <td>
-      <button onclick="saveEditDonation('${donationId}')">Save</button>
+      <button class="save-btn" onclick="saveEditDonation('${donationId}')">Save</button>
       <button onclick="renderDonorInfo()">Cancel</button>
     </td>
   `;
@@ -170,6 +279,14 @@ async function saveEditDonation(donationId) {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({ amount, date })
   });
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   currentDonor = data.donor;
   renderDonorInfo();
@@ -182,6 +299,14 @@ async function removeDonation(donationId) {
   if (!confirmDelete) return;
 
   const res = await fetch(`/api/donors/${currentDonor._id}/donations/${donationId}`, { method: 'DELETE' });
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   currentDonor = data.donor;
   renderDonorInfo();
@@ -193,6 +318,14 @@ async function removeDonor() {
   if (!confirmDelete) return;
 
   const res = await fetch(`/api/donors/${currentDonor._id}`, { method: 'DELETE' });
+  if (!res.ok) {
+      if (res.status === 401) {
+        alert('Session expired or not logged in. Redirecting to login...');
+        window.location.href = '/login.html';
+        return;
+      }
+      throw new Error('Failed to load donors');
+  }
   const data = await res.json();
   alert("Donor deleted!");
   window.location.href = 'donors.html'; // go back to donor list
