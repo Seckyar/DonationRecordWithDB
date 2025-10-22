@@ -46,17 +46,17 @@
     white-space: nowrap;
   }
 
-  td:nth-of-type(1)::before { content: "Name"; }
-  td:nth-of-type(2)::before { content: "City"; }
-  td:nth-of-type(3)::before { content: "Address"; }
-  td:nth-of-type(4)::before { content: "Total Donation"; }
-  td:nth-of-type(5)::before { content: "Number of Donations"; }
+  td:nth-of-type(1)::before { content: "အလှူရှင်အမည်"; }
+  td:nth-of-type(2)::before { content: "လိပ်စာ"; }
+  td:nth-of-type(3)::before { content: "မြို့"; }
+  td:nth-of-type(4)::before { content: "လှူဒါန်းမြှုပ်နှံငွေစုစုပေါင်း"; }
+  td:nth-of-type(5)::before { content: "လှူဒါန်းမှုအရေအတွက်"; }
 
   
   input {
     width: 100%;
     box-sizing: border-box;
-    margin: 8px 0;
+    margin: 6px 0 12px 0;
   }
 
   label {
@@ -69,7 +69,7 @@
 </head>
 <body>
 <nav>
-  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
+  <a href="/donation.html">အလှူထည့်ရန် </a> | <a href="/donors.html">အလှူရှင်များ </a> | 
   <a href="/admin.html">Admin Panel</a> |
   <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
 
@@ -89,17 +89,39 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 </script>
 
 </nav>
-<h1>Search Donors</h1>
-<input type="text" id="searchDonor" placeholder="Search by name or city">
+<h1>သထုံမြို သုဝဏ္ဏဘူမိ<br>ပရိယတ္တိ သာသနဟိတအသင်း</h1>
+  <h3 id="total">Loading...</h3>
+
+  <script>
+    async function fetchTotal() {
+      try {
+        const response = await fetch('/api/donations/total');
+        const data = await response.json();
+        if (data.success) {
+          document.getElementById('total').textContent =
+            'ငွေပင်ငွေရင်းစုစုပေါင်း: ' + data.totalDonationAll + ' ကျပ်';
+        } else {
+          document.getElementById('total').textContent = 'Error fetching total.';
+        }
+      } catch (err) {
+        document.getElementById('total').textContent = 'Server error.';
+      }
+    }
+
+    // Fetch total when page loads
+    fetchTotal();
+  </script>
+<h2>အလှူရှင် ရှာရန်</h2>
+<input type="text" id="searchDonor" style="margin-top: 6px;" placeholder="အမည် သို့မဟုတ် မြို့ဖြင့် ရှာရန်">
 
 <table id="donorsTable">
   <thead>
     <tr>
-      <th>Name</th>
-      <th>City</th>
-      <th>Address</th>
-      <th>Total Donation</th>
-      <th>Number of Donations</th>
+      <th>အလှူရှင်အမည်</th>
+      <th>လိပ်စာ</th>
+      <th>မြို့</th>
+      <th>လှူဒါန်းမြှုပ်နှံငွေစုစုပေါင်း</th>
+      <th>လှူဒါန်းမှုအရေအတွက်</th>
     </tr>
   </thead>
   <tbody id="donorsTableBody"></tbody>
@@ -146,8 +168,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td><a href="donor.html?donorId=${donor._id}">${donor.name}</a></td>
-        <td>${donor.city}</td>
         <td>${donor.address}</td>
+        <td>${donor.city}</td>
         <td>${donor.totalDonation || 0}</td>
         <td>${donor.donations.length}</td>
       `;
@@ -161,14 +183,14 @@ document.addEventListener('DOMContentLoaded', () => {
   loadDonors();
 });
 </script>
-<h1>Add Donation</h1>
+<h1>အလှူရှင် အသစ်ထည့်ရန်</h1>
 <form id="donationForm">
-  Name: <input type="text" id="name" required><br>
-  Address: <input type="text" id="address" required><br>
-  City: <input type="text" id="city" required><br>
-  Amount: <input type="number" id="amount" required><br>
-  Date: <input type="date" id="date" required><br>
-  <button type="submit" style="margin-top: 10px;" class="save-btn">Add Donation</button>
+  အလှူရှင်အမည်: <input type="text" id="name" required><br>
+  လိပ်စာ: <input type="text" id="address" required><br>
+  မြို့: <input type="text" id="city" required><br>
+  လှူဒါန်းမြှုပ်နှံငွေ: <input type="number" id="amount" required><br>
+  ရက်စွဲ: <input type="date" id="date" required><br>
+  <button type="submit" style="margin-top: 10px;" class="save-btn">ထည့်မည်</button>
 </form>
 
 <pre id="response"></pre>
@@ -202,9 +224,9 @@ form.addEventListener('submit', async (e) => {
         alert('Error: ' + res.status);
       }
     } else {
-  const result = await res.json();
-  responseEl.textContent = JSON.stringify(result, null, 2);
-    }
+  alert('Donation added successfully!');
+  location.reload();
+}
 });
 
 </script>

@@ -113,7 +113,7 @@ app.post('/api/logout', (req, res) => {
 });
 
 
-// === Get all donors with total donations, filter & sort ===
+// === Get အလှူရှင်များ  with total donations, filter & sort ===
 app.get('/api/donors', async (req, res) => {
     try {
         const { name, city, minTotal, maxTotal, sortBy, sortOrder } = req.query;
@@ -266,6 +266,21 @@ app.delete('/api/accounts/:id', requireLogin, async (req, res) => {
   res.json({ success: true, message: 'Account deleted successfully.' });
 });
 
+app.get('/api/donations/total', async (req, res) => {
+    try {
+        const result = await Donor.aggregate([
+            { $unwind: "$donations" },
+            { $group: { _id: null, totalDonationAll: { $sum: "$donations.amount" } } }
+        ]);
+
+        const totalDonationAll = result[0]?.totalDonationAll || 0;
+
+        res.json({ success: true, totalDonationAll });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
 
 // === Start Server ===
 app.listen(PORT, () => console.log(`🚀 Server running on http://localhost:${PORT}`));

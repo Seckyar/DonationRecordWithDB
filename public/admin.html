@@ -58,14 +58,14 @@
 
   input, select, button {
     box-sizing: border-box;
-    margin-bottom: 10px;
+    margin-bottom: 6px;
   }
 }
 </style>
 </head>
 <body>
   <nav>
-  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
+  <a href="/donation.html">အလှူထည့်ရန် </a> | <a href="/donors.html">အလှူရှင်များ </a> | 
   <a href="/admin.html">Admin Panel</a> |
   <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
 
@@ -167,9 +167,9 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
           </select>
         </td>
         <td>
-          <button class="edit-btn" onclick="enableEdit('${acc._id}')">Edit</button>
-          <button class="save-btn" style="display:none;" onclick="saveAccount('${acc._id}')">Save</button>
-          <button class="delete-btn" onclick="deleteAccount('${acc._id}', '${acc.username}')">Delete</button>
+          <button class="edit-btn" onclick="enableEdit('${acc._id}')">ပြင်မည်</button>
+          <button class="save-btn" style="display:none;" onclick="saveAccount('${acc._id}')">မှတ်မည်</button>
+          <button class="delete-btn" onclick="deleteAccount('${acc._id}', '${acc.username}')">ဖျက်မည်</button>
         </td>
       `;
       tbody.appendChild(tr);

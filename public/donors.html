@@ -87,17 +87,17 @@ th .arrow {
     font-weight: bold;
   }
 
-  td:nth-of-type(1)::before { content: "Name"; }
-  td:nth-of-type(2)::before { content: "City"; }
-  td:nth-of-type(3)::before { content: "Address"; }
-  td:nth-of-type(4)::before { content: "Total Donation"; }
-  td:nth-of-type(5)::before { content: "Number of Donations"; }
-  td:nth-of-type(6)::before { content: "Actions"; }
+  td:nth-of-type(1)::before { content: "အလှူရှင်အမည်"; }
+  td:nth-of-type(2)::before { content: "လိပ်စာ"; }
+  td:nth-of-type(3)::before { content: "မြို့"; }
+  td:nth-of-type(4)::before { content: "လှူဒါန်းမြှုပ်နှံငွေစုစုပေါင်း"; }
+  td:nth-of-type(5)::before { content: "လှူဒါန်းမှုအရေအတွက်"; }
+  td:nth-of-type(6)::before { content: "လုပ်ဆောင်ချက်များ"; }
 
   input {
     width: 100%;
     box-sizing: border-box;
-    margin-top: 5px;
+    margin-top: 8px;
   }
 
   label {
@@ -109,7 +109,7 @@ th .arrow {
 </head>
 <body>
   <nav>
-  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
+  <a href="/donation.html">အလှူထည့်ရန် </a> | <a href="/donors.html">အလှူရှင်များ </a> | 
   <a href="/admin.html">Admin Panel</a> |
   <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
 
@@ -129,24 +129,24 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 </script>
 
 </nav>
-<h1>Donors List</h1>
+<h1>အလှူရှင် စာရင်း</h1>
 
 <!-- Filters -->
-<label>Name: <input type="text" id="filterName"></label>
-<label>City: <input type="text" id="filterCity"></label>
-<label>Min Total: <input type="number" id="filterMin"></label>
-<label>Max Total: <input type="number" id="filterMax"></label>
+<label>အမည်ဖြင့်စစ်ထုတ်ရန်: <input type="text" id="filterName"></label>
+<label>မြို့ဖြင့်စစ်ထုတ်ရန်: <input type="text" id="filterCity"></label>
+<label>အနည်းဆုံးစုစုပေါင်း: <input type="number" id="filterMin"></label>
+<label>အများဆုံးစုစုပေါင်း: <input type="number" id="filterMax"></label>
 
 <!-- Table -->
 <table>
   <thead>
     <tr>
-      <th onclick="sortTable('name')">Name <span class="arrow" id="arrow-name"></span></th>
-      <th onclick="sortTable('city')">City <span class="arrow" id="arrow-city"></span></th>
-      <th>Address</th>
-      <th onclick="sortTable('totalDonation')">Total Donation <span class="arrow" id="arrow-totalDonation"></span></th>
-      <th>Number of Donations</th>
-      <th>Actions</th>
+      <th onclick="sortTable('name')">အလှူရှင်အမည် <span class="arrow" id="arrow-name"></span></th>
+      <th onclick="sortTable('city')">မြို့ <span class="arrow" id="arrow-city"></span></th>
+      <th>လိပ်စာ</th>
+      <th onclick="sortTable('totalDonation')">လှူဒါန်းမြှုပ်နှံငွေစုစုပေါင်း <span class="arrow" id="arrow-totalDonation"></span></th>
+      <th>လှူဒါန်းမှုအရေအတွက်</th>
+      <th>လုပ်ဆောင်ချက်များ</th>
     </tr>
   </thead>
   <tbody id="donorsTableBody">
@@ -222,7 +222,7 @@ function renderTable() {
       <td>${donor.totalDonation || 0}</td>
       <td>${donor.donations.length}</td>
       <td>
-        <button onclick="deleteDonor('${donor._id}')" class="delete-btn">Delete</button>
+        <button onclick="deleteDonor('${donor._id}')" class="delete-btn">ဖျက်မည်</button>
       </td>
   `;
   tbody.appendChild(tr);

@@ -57,15 +57,15 @@ th {
     font-weight: bold;
   }
 
-  td:nth-of-type(1)::before { content: "Amount"; }
-  td:nth-of-type(2)::before { content: "Date"; }
-  td:nth-of-type(3)::before { content: "Actions"; }
+  td:nth-of-type(1)::before { content: "လှူဒါန်းမြှုပ်နှံငွေ"; }
+  td:nth-of-type(2)::before { content: "ရက်စွဲ"; }
+  td:nth-of-type(3)::before { content: "လုပ်ဆောင်ချက်များ"; }
 
  
   input {
     width: 100%;
     box-sizing: border-box;
-    margin-top: 5px;
+    margin: 6px 0 0 0;
   }
 
   label {
@@ -77,7 +77,7 @@ th {
 </head>
 <body>
   <nav>
-  <a href="/donation.html">Donate</a> | <a href="/donors.html">All Donors</a> | 
+  <a href="/donation.html">အလှူထည့်ရန် </a> | <a href="/donors.html">အလှူရှင်များ </a> | 
   <a href="/admin.html">Admin Panel</a> |
   <button id="logoutBtn" class="logout-btn"  style="float: right;">Logout</button>
 
@@ -97,40 +97,42 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 </script>
 
 </nav>
-<h1>Donor Details</h1>
+<h1>အလှူရှင် အသေးစိတ်</h1>
 
 <div id="donorInfo">
-  <p>Name: <span id="nameSpan"></span></p>
-  <p>Address: <span id="addressSpan"></span></p>
-  <p>City: <span id="citySpan"></span></p>
-  <button id="editDonorBtn">Edit Donor</button>
+  <p>အလှူရှင်အမည်: <span id="nameSpan"></span></p>
+  <p>လိပ်စာ: <span id="addressSpan"></span></p>
+  <p>မြို့: <span id="citySpan"></span></p>
+  <p>လှူဒါန်းမြှုပ်နှံငွေစုစုပေါင်း: <span id="totalDonationSpan"></span></p>
+  <button id="editDonorBtn">ပြင်မည်</button>
+  
 </div>
 
 <div id="editDonorForm" style="display:none;">
-  <label>Name: <input type="text" id="nameInput"></label><br>
-  <label>Address: <input type="text" id="addressInput"></label><br>
-  <label>City: <input type="text" id="cityInput"></label><br>
-  <button id="saveDonorBtn">Save</button>
-  <button id="cancelEditBtn">Cancel</button>
+  <label>အလှူရှင်: <input type="text" id="nameInput"></label><br>
+  <label>လိပ်စာ: <input type="text" id="addressInput"></label><br>
+  <label>မြို့: <input type="text" id="cityInput"></label><br>
+  <button id="saveDonorBtn">မှတ်မည်</button>
+  <button id="cancelEditBtn">မလုပ်တော့ပါ</button>
 </div>
 
 <h2>Donations</h2>
 <table>
   <thead>
     <tr>
-      <th>Amount</th>
-      <th>Date</th>
-      <th>Actions</th>
+      <th>လှူဒါန်းမြှုပ်နှံငွေ</th>
+      <th>ရက်စွဲ</th>
+      <th>လုပ်ဆောင်ချက်များ</th>
     </tr>
   </thead>
   <tbody id="donationsTable"></tbody>
 </table>
 
-<h2>Add Donation</h2>
+<h2>အလှူငွေ အသစ်ထည့်ရန်</h2>
 <form id="addDonationForm">
-  <label>Amount: <input type="number" id="amountAdd" required></label>
-  <label>Date: <input type="date" id="dateAdd" required></label>
-  <button type="submit" style="margin-top: 10px;" class="save-btn">Add</button>
+  <label>လှူဒါန်းမြှုပ်နှံငွေ: <input type="number" id="amountAdd" required></label>
+  <label>ရက်စွဲ: <input type="date" id="dateAdd" required></label>
+  <button type="submit" style="margin-top: 10px;" class="save-btn">ထည့်မည်</button>
 </form>
 
 <pre id="response"></pre>
@@ -172,6 +174,7 @@ function renderDonorInfo() {
   document.getElementById('nameSpan').textContent = currentDonor.name;
   document.getElementById('addressSpan').textContent = currentDonor.address;
   document.getElementById('citySpan').textContent = currentDonor.city;
+  document.getElementById('totalDonationSpan').textContent = currentDonor.totalDonation || 0;
 
   const tbody = document.getElementById('donationsTable');
   tbody.innerHTML = '';
@@ -180,10 +183,10 @@ function renderDonorInfo() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${d.amount}</td>
-      <td>${d.date ? d.date.split('T')[0] : ''}</td>
+      <td>${d.date ? d.date.split("-").reverse().join("/") : ''}</td>
       <td>
-        <button class="edit-btn" onclick="startEditDonation('${d._id}', ${d.amount}, '${d.date ? d.date.split('T')[0] : ''}')">Edit</button>
-        <button class="delete-btn" onclick="removeDonation('${d._id}')">Delete</button>
+        <button class="edit-btn" onclick="startEditDonation('${d._id}', ${d.amount}, '${d.date ? d.date.split('T')[0] : ''}')">ပြင်မည်</button>
+        <button class="delete-btn" onclick="removeDonation('${d._id}')">ဖျက်မည်</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -251,7 +254,9 @@ document.getElementById('addDonationForm').addEventListener('submit', async e =>
   }
   const data = await res.json();
   currentDonor = data.donor;
-  renderDonorInfo();
+  alert('Donation added successfully!');
+  location.reload();
+  
 });
 
 // Donation editing
@@ -264,8 +269,8 @@ function startEditDonation(donationId, amount, date) {
     <td><input type="number" id="editAmount" value="${amount}"></td>
     <td><input type="date" id="editDate" value="${date}"></td>
     <td>
-      <button class="save-btn" onclick="saveEditDonation('${donationId}')">Save</button>
-      <button onclick="renderDonorInfo()">Cancel</button>
+      <button class="save-btn" onclick="saveEditDonation('${donationId}')">မှတ်မည်</button>
+      <button onclick="renderDonorInfo()">မလုပ်တော့ပါ</button>
     </td>
   `;
 }
